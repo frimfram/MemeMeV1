@@ -1,5 +1,5 @@
 //
-//  ViewController.swift
+//  MemeEditorViewController.swift
 //  MemeMeFirstVersion
 //
 //  Created by Jean Ro on 8/12/17.
@@ -23,7 +23,6 @@ class MemeEditorViewController: UIViewController {
     @IBOutlet weak var cancelButton: UIBarButtonItem!
     
     var memedImage: UIImage?
-    var characterLimit: Int = textFieldLengthLimit.portrait.rawValue
     
     enum textFieldType:Int {
         case top = 1
@@ -33,11 +32,6 @@ class MemeEditorViewController: UIViewController {
     enum textFieldInitialText:String {
         case top = "TOP"
         case bottom = "BOTTOM"
-    }
-    
-    enum textFieldLengthLimit:Int {
-        case portrait = 12
-        case landscape = 20
     }
     
     let memeTextAttributes:[String:Any] = [
@@ -66,27 +60,13 @@ class MemeEditorViewController: UIViewController {
         super.viewWillDisappear(animated)
         unsubscribeFromKeyboardNotifications()
     }
-    
-    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
-        if UIDevice.current.orientation.isLandscape {
-            characterLimit = textFieldLengthLimit.landscape.rawValue
-        } else {
-            characterLimit = textFieldLengthLimit.portrait.rawValue
-        }
-    }
 
     @IBAction func pickAnImageFromAlbum(_ sender: UIBarButtonItem) {
-        let pickerController = UIImagePickerController()
-        pickerController.delegate = self
-        pickerController.sourceType = .photoLibrary
-        present(pickerController, animated: true, completion: nil)
+        pickAnImageFrom(.photoLibrary)
     }
 
     @IBAction func pickAnImageFromCamera(_ sender: UIBarButtonItem) {
-        let pickerController = UIImagePickerController()
-        pickerController.delegate = self
-        pickerController.sourceType = .camera
-        present(pickerController, animated: true, completion: nil)
+        pickAnImageFrom(.camera)
     }
     
     @IBAction func shareMeme(_ sender: UIBarButtonItem) {
@@ -113,6 +93,13 @@ class MemeEditorViewController: UIViewController {
         textField.text = initialText
         textField.tag = tag.rawValue
         textField.delegate = self
+    }
+    
+    func pickAnImageFrom(_ source: UIImagePickerControllerSourceType) {
+        let pickerController = UIImagePickerController()
+        pickerController.delegate = self
+        pickerController.sourceType = source
+        present(pickerController, animated: true, completion: nil)
     }
     
     func keyboardWillShow(_ notification:Notification) {
@@ -146,17 +133,20 @@ class MemeEditorViewController: UIViewController {
     }
     
     func generateMemedImage() -> UIImage {
-        toolBar.isHidden = true
-        navBar.isHidden = true
+        toggleBarVisibility(isHidden: true)
         
         UIGraphicsBeginImageContext(self.view.frame.size)
         view.drawHierarchy(in: self.view.frame, afterScreenUpdates: true)
         let memed: UIImage = UIGraphicsGetImageFromCurrentImageContext()!
         UIGraphicsEndImageContext()
         
-        toolBar.isHidden = false
-        navBar.isHidden = false
+        toggleBarVisibility(isHidden: false)
         return memed
+    }
+    
+    func toggleBarVisibility(isHidden: Bool) {
+        toolBar.isHidden = isHidden
+        navBar.isHidden = isHidden
     }
 }
 
@@ -175,16 +165,6 @@ extension MemeEditorViewController: UITextFieldDelegate {
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         textField.resignFirstResponder()
         return true
-    }
-    
-    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
-        let oldStr = textField.text ?? ""
-        let str = oldStr + string
-        if str.characters.count <= characterLimit {
-            return true
-        }
-        textField.text = str.substring(to: str.index(str.startIndex, offsetBy: characterLimit)) + "..."
-        return false
     }
     
     func clearIfInitial(text:String, withCurrent:String?, forField:UITextField) {
